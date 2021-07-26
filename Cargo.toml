@@ -1,0 +1,30 @@
+[package]
+name = "exoclichat"
+version = "0.1.0"
+authors = ["Exopteron <exopteron@protonmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hkdf = "0.11.0"
+integer-encoding = "3.0.2"
+x25519-dalek = { version = "1.1.1", features = ["serde"] }
+keyex_rand_core = { package = "rand_core", version = "0.5", features = ["getrandom","std"] }
+aes-gcm-siv = "0.10.0"
+rand = "^0.6.0"
+sha3 = "0.9.1"
+hex = "0.4.3"
+ed25519-dalek = "1.0.1"
+base64 = "0.13.0"
+hmac = "0.11.0"
+aes = "0.7.3"
+cfb8 = "0.7.1"
+serde_json = "^1.0.59"
+serde = { version = "1.0", features = ["derive"] }
+native-tls = "0.2.7"
+sha-1 = "0.9.6"
+num-bigint = { version = "0.4.0", features = ["rand"] }
+num-bigint-dig = "0.7.0"
+num = "0.4.0"
+block-modes = "0.8.1"
