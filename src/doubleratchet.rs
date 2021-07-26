@@ -152,15 +152,7 @@ impl StateHE {
         let mut ad = vec![];
         ad.append(&mut AD.clone());
         ad.append(&mut enc_header.clone());
-        //println!("Key: {:?}", mk);
-        //println!("AD: {:?}", ad);
-        //let key = Key::from_slice(&mk);
-        //let cipher = Aes256GcmSiv::new(key);
-        //let mut nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        //let nonce = Nonce::from_slice(&nonce);
-        //let ciphertext = cipher.encrypt(nonce, payload).unwrap();
         let enc_header = varint::VarInt::write_varint_prefixed_bytearray(enc_header);
-        //println!("\n\n{:?}\n\n{:?}\n\n{:?}\n\n", mk, plaintext, ad);
         let ciphertext = Self::ENCRYPT(mk, plaintext, ad);
         return (enc_header, ciphertext);
     }
@@ -172,36 +164,18 @@ impl StateHE {
         if !plaintext.is_none() {
             return plaintext.unwrap();
         }
-        //println!("Here");
         let (header, dh_ratchet) = self.DecryptHeader(enc_header.clone());
         if dh_ratchet {
             Self::SkipMessageKeysHE(self, header.pn);
             self.DHRatchetHE(header.clone());
         }
-/*         if self.DHr.is_none() || header.dh != self.DHr.unwrap().clone().to_bytes().to_vec() {
-            Self::SkipMessageKeys(self, header.pn);
-            Self::DHRatchet(self, header.clone());
-        } */
         Self::SkipMessageKeysHE(self, header.n);
         let (CKr, mk) = Self::KDF_CK(self.CKr.as_ref().unwrap().clone());
         self.CKr = Some(CKr);
         self.Nr += 1;
-        //println!("Key: {:?}", mk);
-/*         let key = Key::from_slice(&mk);
-        let cipher = Aes256GcmSiv::new(key);
-        let mut nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        let nonce = Nonce::from_slice(&nonce); */
         let mut ad = vec![];
         ad.append(&mut AD.clone());
-        //ad.append(&mut Self::HEADER(header.dh.clone(), header.pn, header.n).clone());
         ad.append(&mut enc_header.clone());
-/*         //println!("AD: {:?}", ad);
-        let payload = Payload {
-            msg: &ciphertext,
-            aad: &ad,
-        };
-        //let plaintext = cipher.decrypt(nonce, payload).unwrap(); */
-        //println!("\n\n{:?}\n\n{:?}\n\n{:?}\n\n", mk, ciphertext, ad);
         let plaintext = Self::DECRYPT(mk, ciphertext, ad).unwrap();
         return plaintext;
     }
@@ -260,7 +234,6 @@ impl StateHE {
     /// Encrypt the header from a header key and plaintext.
     fn HENCRYPT(hk: Vec<u8>, plaintext: Vec<u8>) -> Vec<u8> {
         use keyex_rand_core::RngCore;
-        //let rng = OsRng::new().unwrap();
         let key = Key::from_slice(&hk);
         let cipher = Aes256GcmSiv::new(key);
         let mut noncebytes = vec![0; 12];
@@ -274,8 +247,6 @@ impl StateHE {
     }
     /// Decrypt the header from a header key and ciphertext.
     fn HDECRYPT(hk: Vec<u8>, mut ciphertext: Vec<u8>) -> Option<Vec<u8>> {
-        //use keyex_rand_core::RngCore;
-        //let rng = OsRng::new().unwrap();
         if hk.len() < 32 {
             return None;
         }
@@ -292,7 +263,6 @@ impl StateHE {
         }
         let plaintext = plaintext.unwrap();
         let mut output = vec![];
-        //output.append(&mut noncebytes);
         output.append(&mut plaintext.clone());
         return Some(output);
     }
@@ -315,9 +285,7 @@ impl StateHE {
         okm.read_exact(&mut iv).unwrap();
         let cipher = Aes256Cbc::new_from_slices(&encryption, &iv).unwrap();
         let mut output = plaintext;
-        //let mut len = output.len() - 1;
         let output = cipher.encrypt_vec(&mut output);
-        //println!("Ciphertext: {:?}", output);
         let mut mac = HmacSha256::new_from_slice(&authentication).unwrap();
         mac.update(&AD);
         mac.update(&output);
@@ -354,8 +322,6 @@ impl StateHE {
         plaintext.read_to_end(&mut output).unwrap();
         output.reverse();
         macthem.reverse();
-        //let mut output = (&plaintext[..plaintext.len() - 32]).to_vec();
-        //let mut macthem = (&plaintext[plaintext.len() - 32..]).to_vec();
         let mut mac = HmacSha256::new_from_slice(&authentication).unwrap();
         mac.update(&AD);
         mac.update(&output);
@@ -363,12 +329,9 @@ impl StateHE {
         if macthem != mac {
             return Err("MAC failure!".to_string());
         }
-        //let len = output.len();
-        //println!("Ciphertext: {:?}", output);
         let output = cipher.decrypt(&mut output).unwrap().to_vec();
         let mut output2 = vec![];
         output2.append(&mut output.clone());
-        //output2.append(&mut mac.clone());
         return Ok(output2);
     }
     /// Skip missed message keys.
@@ -415,26 +378,6 @@ impl StateHE {
             }
             iter += 1;
         }
-/*             if skippedkey.dh == header.dh.clone() && skippedkey.n == header.n {
-                let mk = skippedkey.mk;
-                self.MKSKIPPED.remove(iter);
-/*                 let key = Key::from_slice(&mk);
-                let cipher = Aes256GcmSiv::new(key);
-                let mut nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-                let nonce = Nonce::from_slice(&nonce); */
-                let mut ad = vec![];
-                ad.append(&mut AD.clone());
-                ad.append(&mut Self::HEADER(header.dh.clone(), header.pn, header.n).clone());
-/*                 let payload = Payload {
-                    msg: &ciphertext,
-                    aad: &ad,
-                };
-                let plaintext = cipher.decrypt(nonce, payload).unwrap(); */
-                let plaintext = Self::DECRYPT(mk, ciphertext, ad).unwrap();
-                return Some(plaintext);
-            }
-            iter += 1;
-        } */
         return None;
     }
     /// Serialize a header.
