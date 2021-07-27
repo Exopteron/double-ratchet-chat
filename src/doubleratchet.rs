@@ -167,12 +167,12 @@ impl StateHE {
         return (enc_header, ciphertext);
     }
     /// Perform double-ratchet decryption on an encrypted message and associated data.
-    pub fn RatchetDecryptHE(&mut self, enc_header: Vec<u8>, AD: Vec<u8>) -> Vec<u8> {
+    pub fn RatchetDecryptHE(&mut self, enc_header: Vec<u8>, AD: Vec<u8>) -> Result<Vec<u8>, String> {
         let (enc_header, ciphertext) = Self::DeserializeHEADERHE(enc_header);
         let plaintext =
             Self::TrySkippedMessageKeysHE(self, enc_header.clone(), ciphertext.clone(), AD.clone());
         if !plaintext.is_none() {
-            return plaintext.unwrap();
+            return Ok(plaintext.unwrap());
         }
         let (header, dh_ratchet) = self.DecryptHeader(enc_header.clone());
         if dh_ratchet {
@@ -186,7 +186,7 @@ impl StateHE {
         let mut ad = vec![];
         ad.append(&mut AD.clone());
         ad.append(&mut enc_header.clone());
-        let plaintext = Self::DECRYPT(mk, ciphertext, ad).unwrap();
+        let plaintext = Self::DECRYPT(mk, ciphertext, ad);
         return plaintext;
     }
     /// Attempt to decrypt message header.
