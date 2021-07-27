@@ -4,7 +4,7 @@ use aes_gcm_siv::{Aes256GcmSiv, Key, Nonce}; // Or `Aes128GcmSiv`
 use hmac::{Hmac, Mac, NewMac};
 use keyex_rand_core::OsRng;
 use serde::{Deserialize, Serialize};
-use sha3::{Sha3_256};
+use sha3::Sha3_256;
 use x25519_dalek::{PublicKey, StaticSecret};
 type HmacSha256 = Hmac<Sha3_256>;
 #[path = "varint.rs"]
@@ -37,7 +37,7 @@ pub struct StateHE {
     HKs: Vec<u8>,
     HKr: Vec<u8>,
     NHKs: Vec<u8>,
-    NHKr: Vec<u8>
+    NHKr: Vec<u8>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SkippedKey {
@@ -59,8 +59,13 @@ pub struct Header {
 }
 /// Double ratchet with header encryption.
 impl StateHE {
-    /// Alice's function to initialize the ratchet from a secret key, Bob's ECDH key and 2 secret header keys. 
-    pub fn RatchetInitAliceHE(SK: Vec<u8>, bob_dh_public_key: PublicKey, shared_hka: Vec<u8>, shared_nhkb: Vec<u8>) -> Self {
+    /// Alice's function to initialize the ratchet from a secret key, Bob's ECDH key and 2 secret header keys.
+    pub fn RatchetInitAliceHE(
+        SK: Vec<u8>,
+        bob_dh_public_key: PublicKey,
+        shared_hka: Vec<u8>,
+        shared_nhkb: Vec<u8>,
+    ) -> Self {
         //let mut state: State;
         let DHs = StaticSecret::new(OsRng);
         let DHr = bob_dh_public_key;
@@ -86,12 +91,17 @@ impl StateHE {
             HKs: shared_hka,
             NHKs: NHKs,
             HKr: vec![],
-            NHKr: shared_nhkb
+            NHKr: shared_nhkb,
         };
         return state;
     }
     /// Bob's function to initialize the ratchet from a secret key, Bob's result from an ECDH exchange with Alice and 2 secret header keys.
-    pub fn RatchetInitBobHE(SK: Vec<u8>, bob_dh_key_pair: StaticSecret, shared_hka: Vec<u8>, shared_nhkb: Vec<u8>) -> Self {
+    pub fn RatchetInitBobHE(
+        SK: Vec<u8>,
+        bob_dh_key_pair: StaticSecret,
+        shared_hka: Vec<u8>,
+        shared_nhkb: Vec<u8>,
+    ) -> Self {
         let DHs = bob_dh_key_pair;
         let DHr: Option<PublicKey> = None;
         let RK = SK;
@@ -114,7 +124,7 @@ impl StateHE {
             HKs: vec![],
             NHKs: shared_nhkb,
             HKr: vec![],
-            NHKr: shared_hka
+            NHKr: shared_hka,
         };
         return state;
     }
@@ -233,12 +243,19 @@ impl StateHE {
     }
     /// Encrypt the header from a header key and plaintext.
     fn HENCRYPT(hk: Vec<u8>, plaintext: Vec<u8>) -> Vec<u8> {
+        use aes::Aes256;
+        use block_modes::block_padding::Pkcs7;
+        use block_modes::{BlockMode, Cbc};
+        use chacha20poly1305::aead::{Aead, NewAead};
+        use chacha20poly1305::{Key, XChaCha20Poly1305, XNonce};
         use keyex_rand_core::RngCore;
+        use std::io::Read;
+        type Aes256Cbc = Cbc<Aes256, Pkcs7>;
         let key = Key::from_slice(&hk);
-        let cipher = Aes256GcmSiv::new(key);
-        let mut noncebytes = vec![0; 12];
+        let cipher = XChaCha20Poly1305::new(key);
+        let mut noncebytes = vec![0; 24];
         OsRng.fill_bytes(&mut noncebytes);
-        let nonce = Nonce::from_slice(&noncebytes);
+        let nonce = XNonce::from_slice(&noncebytes);
         let ciphertext = cipher.encrypt(nonce, plaintext.as_ref()).unwrap();
         let mut output = vec![];
         output.append(&mut noncebytes);
@@ -247,16 +264,18 @@ impl StateHE {
     }
     /// Decrypt the header from a header key and ciphertext.
     fn HDECRYPT(hk: Vec<u8>, mut ciphertext: Vec<u8>) -> Option<Vec<u8>> {
+        use chacha20poly1305::aead::{Aead, NewAead};
+        use chacha20poly1305::{Key, XChaCha20Poly1305, XNonce};
         if hk.len() < 32 {
             return None;
         }
         let key = Key::from_slice(&hk);
-        let cipher = Aes256GcmSiv::new(key);
+        let cipher = XChaCha20Poly1305::new(key);
         let mut noncebytes = vec![];
-        for i in 0..12 {
+        for i in 0..24 {
             noncebytes.push(ciphertext.remove(0));
         }
-        let nonce = Nonce::from_slice(&noncebytes);
+        let nonce = XNonce::from_slice(&noncebytes);
         let plaintext = cipher.decrypt(nonce, ciphertext.as_ref());
         if plaintext.is_err() {
             return None;
@@ -544,14 +563,14 @@ impl State {
         self.CKr = Some(CKr);
         self.Nr += 1;
         //println!("Key: {:?}", mk);
-/*         let key = Key::from_slice(&mk);
+        /*         let key = Key::from_slice(&mk);
         let cipher = Aes256GcmSiv::new(key);
         let mut nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         let nonce = Nonce::from_slice(&nonce); */
         let mut ad = vec![];
         //ad.append(&mut AD.clone());
         ad.append(&mut Self::HEADER(header.dh.clone(), header.pn, header.n).clone());
-/*         //println!("AD: {:?}", ad);
+        /*         //println!("AD: {:?}", ad);
         let payload = Payload {
             msg: &ciphertext,
             aad: &ad,
@@ -693,14 +712,14 @@ impl State {
             if skippedkey.dh == header.dh.clone() && skippedkey.n == header.n {
                 let mk = skippedkey.mk;
                 self.MKSKIPPED.remove(iter);
-/*                 let key = Key::from_slice(&mk);
+                /*                 let key = Key::from_slice(&mk);
                 let cipher = Aes256GcmSiv::new(key);
                 let mut nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
                 let nonce = Nonce::from_slice(&nonce); */
                 let mut ad = vec![];
                 ad.append(&mut AD.clone());
                 ad.append(&mut Self::HEADER(header.dh.clone(), header.pn, header.n).clone());
-/*                 let payload = Payload {
+                /*                 let payload = Payload {
                     msg: &ciphertext,
                     aad: &ad,
                 };
