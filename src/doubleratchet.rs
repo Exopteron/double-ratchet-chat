@@ -17,9 +17,9 @@ pub struct State {
     RK: Vec<u8>,
     CKs: Vec<u8>,
     CKr: Option<Vec<u8>>,
-    Ns: u128,
-    Nr: u128,
-    PN: u128,
+    Ns: u32,
+    Nr: u32,
+    PN: u32,
     MKSKIPPED: Vec<SkippedKey>,
 }
 /// Double ratchet with header encryption.
@@ -30,9 +30,9 @@ pub struct StateHE {
     RK: Vec<u8>,
     CKs: Vec<u8>,
     CKr: Option<Vec<u8>>,
-    Ns: u128,
-    Nr: u128,
-    PN: u128,
+    Ns: u32,
+    Nr: u32,
+    PN: u32,
     MKSKIPPED: Vec<SkippedKeyHE>,
     HKs: Vec<u8>,
     HKr: Vec<u8>,
@@ -42,20 +42,20 @@ pub struct StateHE {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SkippedKey {
     dh: Vec<u8>,
-    n: u128,
+    n: u32,
     mk: Vec<u8>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SkippedKeyHE {
     hk: Vec<u8>,
-    n: u128,
+    n: u32,
     mk: Vec<u8>,
 }
 #[derive(Clone)]
 pub struct Header {
     dh: Vec<u8>,
-    pn: u128,
-    n: u128,
+    pn: u32,
+    n: u32,
 }
 /// Double ratchet with header encryption.
 impl StateHE {
@@ -354,7 +354,7 @@ impl StateHE {
         return Ok(output2);
     }
     /// Skip missed message keys.
-    fn SkipMessageKeysHE(&mut self, until: u128) {
+    fn SkipMessageKeysHE(&mut self, until: u32) {
         if self.Nr + 1000 < until {
             panic!("AHH IM PANICKING");
         }
@@ -400,12 +400,12 @@ impl StateHE {
         return None;
     }
     /// Serialize a header.
-    pub fn HEADER(dh_pair: Vec<u8>, pn: u128, n: u128) -> Vec<u8> {
+    pub fn HEADER(dh_pair: Vec<u8>, pn: u32, n: u32) -> Vec<u8> {
         let mut header = vec![];
         header.append(&mut varint::VarInt::new_as_bytes(dh_pair.len() as u32));
         header.append(&mut dh_pair.clone());
-        header.append(&mut varint::VarInt::write_u128(pn));
-        header.append(&mut varint::VarInt::write_u128(n));
+        header.append(&mut varint::VarInt::write_u32(pn));
+        header.append(&mut varint::VarInt::write_u32(n));
         return header;
     }
     /// Deserialize a header.
@@ -430,8 +430,8 @@ impl StateHE {
             .number;
         let mut dh_pair = vec![0; dh_pair_len as usize];
         serialized.read_exact(&mut dh_pair).unwrap();
-        let pn = varint::VarInt::read_u128(&mut serialized);
-        let n = varint::VarInt::read_u128(&mut serialized);
+        let pn = varint::VarInt::read_u32(&mut serialized);
+        let n = varint::VarInt::read_u32(&mut serialized);
         let header = Header {
             dh: dh_pair,
             pn: pn,
@@ -442,27 +442,6 @@ impl StateHE {
 }
 /// Double ratchet without header encryption.
 impl State {
-    pub fn as_bytes(&mut self) {
-        let mut bytes = vec![];
-        bytes.append(&mut varint::VarInt::write_varint_prefixed_bytearray(
-            self.DHs.to_bytes().to_vec(),
-        ));
-        bytes.append(&mut varint::VarInt::write_varint_prefixed_bytearray(
-            self.DHr.as_ref().unwrap().to_bytes().to_vec(),
-        ));
-        bytes.append(&mut varint::VarInt::write_varint_prefixed_bytearray(
-            self.RK.to_vec(),
-        ));
-        bytes.append(&mut varint::VarInt::write_varint_prefixed_bytearray(
-            self.CKs.to_vec(),
-        ));
-        bytes.append(&mut varint::VarInt::write_varint_prefixed_bytearray(
-            self.CKr.as_ref().unwrap().to_vec(),
-        ));
-        bytes.append(&mut varint::VarInt::write_u128(self.Ns));
-        bytes.append(&mut varint::VarInt::write_u128(self.Nr));
-        bytes.append(&mut varint::VarInt::write_u128(self.PN));
-    }
     pub fn RatchetInitAlice(SK: Vec<u8>, bob_dh_public_key: PublicKey) -> Self {
         //let mut state: State;
         let DHs = StaticSecret::new(OsRng);
@@ -683,7 +662,7 @@ impl State {
         //output2.append(&mut mac.clone());
         return Ok(output2);
     }
-    fn SkipMessageKeys(&mut self, until: u128) {
+    fn SkipMessageKeys(&mut self, until: u32) {
         if self.Nr + 100 < until {
             panic!("AHH IM PANICKING");
         }
@@ -731,12 +710,12 @@ impl State {
         }
         return None;
     }
-    pub fn HEADER(dh_pair: Vec<u8>, pn: u128, n: u128) -> Vec<u8> {
+    pub fn HEADER(dh_pair: Vec<u8>, pn: u32, n: u32) -> Vec<u8> {
         let mut header = vec![];
         header.append(&mut varint::VarInt::new_as_bytes(dh_pair.len() as u32));
         header.append(&mut dh_pair.clone());
-        header.append(&mut varint::VarInt::write_u128(pn));
-        header.append(&mut varint::VarInt::write_u128(n));
+        header.append(&mut varint::VarInt::write_u32(pn));
+        header.append(&mut varint::VarInt::write_u32(n));
         return header;
     }
     pub fn DeserializeHEADER(serialized: Vec<u8>) -> (Header, Vec<u8>) {
@@ -747,8 +726,8 @@ impl State {
             .number;
         let mut dh_pair = vec![0; dh_pair_len as usize];
         serialized.read_exact(&mut dh_pair);
-        let mut pn = varint::VarInt::read_u128(&mut serialized);
-        let mut n = varint::VarInt::read_u128(&mut serialized);
+        let mut pn = varint::VarInt::read_u32(&mut serialized);
+        let mut n = varint::VarInt::read_u32(&mut serialized);
         let header = Header {
             dh: dh_pair,
             pn: pn,

@@ -66,6 +66,17 @@ impl VarInt {
         let num: u128 = num as u128;
         return num;
     }
+    pub fn read_u32(mut input: &mut dyn std::io::Read) -> u32 {
+        let mut string = vec![0; 4];
+        input.read_exact(&mut string);
+        let mut numarray = [0; 4];
+        for i in 0..4 {
+            numarray[i] = string[i];
+        }
+        let num: u32 = u32::from_be_bytes(numarray);
+        let num: u32 = num as u32;
+        return num;
+    }
     pub fn read_short(mut input: &mut dyn std::io::Read) -> isize {
         let mut string = vec![0; 2];
         input.read_exact(&mut string);
@@ -130,6 +141,17 @@ impl VarInt {
         let mut bytes = number.to_be_bytes().to_vec();
         if bytes.len() < 16 {
             for i in 0..16 - bytes.len() {
+                bytes.reverse();
+                bytes.push(0x00);
+                bytes.reverse();
+            }
+        }
+        return bytes;
+    }
+    pub fn write_u32(number: u32) -> Vec<u8> {
+        let mut bytes = number.to_be_bytes().to_vec();
+        if bytes.len() < 4 {
+            for i in 0..4 - bytes.len() {
                 bytes.reverse();
                 bytes.push(0x00);
                 bytes.reverse();
