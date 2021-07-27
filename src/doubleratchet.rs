@@ -344,8 +344,8 @@ impl StateHE {
         let mut mac = HmacSha256::new_from_slice(&authentication).unwrap();
         mac.update(&AD);
         mac.update(&output);
-        let mac = mac.finalize().into_bytes().to_vec();
-        if macthem != mac {
+        //let mac = mac.finalize().into_bytes().to_vec();
+        if !mac.verify(&macthem).is_ok() {
             return Err("MAC failure!".to_string());
         }
         let output = cipher.decrypt(&mut output).unwrap().to_vec();
@@ -650,8 +650,8 @@ impl State {
         let mut mac = HmacSha256::new_from_slice(&authentication).unwrap();
         mac.update(&AD);
         mac.update(&output);
-        let mac = mac.finalize().into_bytes().to_vec();
-        if macthem != mac {
+        //let mac = mac.finalize().into_bytes().to_vec();
+        if !mac.verify(&macthem).is_ok() {
             return Err("MAC failure!".to_string());
         }
         let mut len = output.len();
