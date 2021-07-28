@@ -70,10 +70,10 @@ impl StateHE {
         let DHs = StaticSecret::new(OsRng);
         let DHr = bob_dh_public_key;
         let (RK, CKs, NHKs) = Self::KDF_RK_HE(
-            SK,
+            SK.clone(),
             DHs.clone().diffie_hellman(&DHr.clone()).as_bytes().to_vec(),
         );
-        let CKr = Some(vec![]);
+        let (CKr, HKr) = Self::KDF_INIT_SECRET(SK);
         let Ns = 0;
         let Nr = 0;
         let PN = 0;
@@ -83,14 +83,14 @@ impl StateHE {
             DHRr: Some(DHr),
             RK: RK,
             CKs: CKs,
-            CKr: CKr,
+            CKr: Some(CKr),
             Ns: Ns,
             Nr: Nr,
             PN: PN,
             MKSKIPPED: MKSKIPPED,
             HKs: shared_hka,
             NHKs: NHKs,
-            HKr: vec![],
+            HKr: HKr,
             NHKr: shared_nhkb,
         };
         return state;
@@ -104,8 +104,9 @@ impl StateHE {
     ) -> Self {
         let DHs = bob_dh_key_pair;
         let DHr: Option<PublicKey> = None;
-        let RK = SK;
-        let CKs = vec![];
+        let RK = SK.clone();
+        let (CKs, HKs) = Self::KDF_INIT_SECRET(SK);
+        println!("CKs: {:?}", CKs);
         let CKr = Some(vec![]);
         let Ns = 0;
         let Nr = 0;
@@ -121,7 +122,7 @@ impl StateHE {
             Nr: Nr,
             PN: PN,
             MKSKIPPED: MKSKIPPED,
-            HKs: vec![],
+            HKs: HKs,
             NHKs: shared_nhkb,
             HKr: vec![],
             NHKr: shared_hka,
@@ -138,6 +139,16 @@ impl StateHE {
         let he = mac.finalize().into_bytes().to_vec();
         let ck = sha3_256(rk.clone());
         return (rk, ck, he);
+    }
+    /// Generate the initial header key and message key for Bob to be able to send messages first
+    fn KDF_INIT_SECRET(rk: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+        let mut mac = HmacSha256::new_from_slice(&rk).unwrap();
+        mac.update(&[0x00,0x05,0x10]);
+        let ck = mac.finalize().into_bytes().to_vec();
+        let mut mac = HmacSha256::new_from_slice(&rk).unwrap();
+        mac.update(&[0x00,0x10,0x10]);
+        let hk = mac.finalize().into_bytes().to_vec();
+        return (ck, hk);
     }
     /// Generate a new chain key and message key from the previous chain key.
     fn KDF_CK(ck: Vec<u8>) -> (Vec<u8>, Vec<u8>) {

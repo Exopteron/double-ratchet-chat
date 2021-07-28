@@ -238,7 +238,7 @@ fn main() {
             let mut ratchet = doubleratchet::StateHE::RatchetInitBobHE(key1, key2, key2sym, key3);
             let mut json = serde_json::to_string_pretty(&ratchet).unwrap();
             std::fs::write("bobpub.key", json);
-            println!("\n\n\nRatchets have not been initialized. Please give a message from the other party to begin.");
+/*             println!("\n\n\nRatchets have not been initialized. Please give a message from the other party to begin.");
             let mut line = String::new();
             std::io::stdin().read_line(&mut line);
             let mut line = line.trim().to_string();
@@ -265,7 +265,7 @@ fn main() {
             }
             let plaintext = plaintext.unwrap();
             let mut plaintext = String::from_utf8_lossy(&plaintext).to_string();
-            println!("-------BEGIN DECRYPTED-------\n\n{}\n\n-------END DECRYPTED-------\n", plaintext);
+            println!("-------BEGIN DECRYPTED-------\n\n{}\n\n-------END DECRYPTED-------\n", plaintext); */
             loop {
                 println!("Enc or dec? (enc/dec)");
                 let mut line = String::new();
