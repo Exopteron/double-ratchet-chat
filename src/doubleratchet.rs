@@ -66,7 +66,6 @@ impl StateHE {
         shared_hka: Vec<u8>,
         shared_nhkb: Vec<u8>,
     ) -> Self {
-        //let mut state: State;
         let DHs = StaticSecret::new(OsRng);
         let DHr = bob_dh_public_key;
         let (RK, CKs, NHKs) = Self::KDF_RK_HE(
@@ -106,7 +105,6 @@ impl StateHE {
         let DHr: Option<PublicKey> = None;
         let RK = SK.clone();
         let (CKs, HKs) = Self::KDF_INIT_SECRET(SK);
-        println!("CKs: {:?}", CKs);
         let CKr = Some(vec![]);
         let Ns = 0;
         let Nr = 0;
