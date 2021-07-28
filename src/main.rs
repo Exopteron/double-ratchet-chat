@@ -295,11 +295,11 @@ fn main() {
                     let mut line = line.unwrap();
                     let plaintext = ratchet.RatchetDecryptHE(line.to_vec(), vec![]);
                     let mut json = serde_json::to_string_pretty(&ratchet).unwrap();
-                    std::fs::write("bobpub.key", json);
                     if plaintext.is_err() {
                         println!("Error decrypting message.");
                         continue;
                     }
+                    std::fs::write("bobpub.key", json);
                     let plaintext = plaintext.unwrap();
                     let mut plaintext = String::from_utf8_lossy(&plaintext).to_string();
                     println!("-------BEGIN DECRYPTED-------\n\n{}\n\n-------END DECRYPTED-------\n", plaintext);
