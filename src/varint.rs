@@ -26,7 +26,10 @@ impl VarInt {
         let vint = VarInt::new_from_bytes(&mut input);
         return vint;
     }
-    pub fn enc_new_u32_from_bytes(mut input: &mut dyn std::io::Read, mut cipher: &mut AesCfb8) -> Result<VarInt, String> {
+    pub fn enc_new_u32_from_bytes(
+        mut input: &mut dyn std::io::Read,
+        mut cipher: &mut AesCfb8,
+    ) -> Result<VarInt, String> {
         let vint = VarInt::enc_new_from_bytes(&mut input, cipher);
         return vint;
     }
@@ -41,7 +44,7 @@ impl VarInt {
         let strlen = VarInt::new_u32_from_bytes(input).unwrap().number;
         let mut string = vec![0; strlen as usize];
         input.read_exact(&mut string);
-/*         let string = String::from_utf8_lossy(&string).to_string(); */
+        /*         let string = String::from_utf8_lossy(&string).to_string(); */
         return string;
     }
     pub fn read_unsigned_short(mut input: &mut dyn std::io::Read) -> usize {
@@ -159,7 +162,10 @@ impl VarInt {
         }
         return bytes;
     }
-    pub fn enc_read_packet(mut input: &mut dyn std::io::Read, mut cipher: &mut AesCfb8) -> Result<(usize, Vec<u8>), String> {
+    pub fn enc_read_packet(
+        mut input: &mut dyn std::io::Read,
+        mut cipher: &mut AesCfb8,
+    ) -> Result<(usize, Vec<u8>), String> {
         let length = VarInt::enc_new_u32_from_bytes(input, cipher);
         if length.is_err() {
             return Err("Failed to read.".to_string());
@@ -174,7 +180,7 @@ impl VarInt {
     pub fn read_packet(mut input: &mut dyn std::io::Read) -> Result<(usize, Vec<u8>), String> {
         let length = VarInt::new_u32_from_bytes(input);
         if length.is_err() {
-            return Err("Failed to read.".to_string())
+            return Err("Failed to read.".to_string());
         }
         let length = length.unwrap().number;
         let mut packet = vec![0; length as usize];
@@ -194,7 +200,9 @@ impl VarInt {
         let mut packetidvec = vec![];
         packetidvec.append(&mut VarInt::new_as_bytes(packetid as u32));
         let mut packet = vec![];
-        packet.append(&mut VarInt::new_as_bytes((packetidvec.len() + input.len()) as u32));
+        packet.append(&mut VarInt::new_as_bytes(
+            (packetidvec.len() + input.len()) as u32,
+        ));
         packet.append(&mut packetidvec);
         packet.append(&mut input);
         return packet;
@@ -203,7 +211,9 @@ impl VarInt {
         let mut packetidvec = vec![];
         packetidvec.append(&mut VarInt::new_as_bytes(packetid as u32));
         let mut packet = vec![];
-        packet.append(&mut VarInt::new_as_bytes((packetidvec.len() + input.len() + 1) as u32));
+        packet.append(&mut VarInt::new_as_bytes(
+            (packetidvec.len() + input.len() + 1) as u32,
+        ));
         packet.append(&mut packetidvec);
         packet.append(&mut input);
         return packet;
@@ -309,7 +319,10 @@ impl VarInt {
         }
         return Ok(VarInt { number: finalen });
     }
-    pub fn enc_new_from_bytes(inputreader: &mut dyn std::io::Read, mut cipher: &mut AesCfb8) -> Result<VarInt, String> {
+    pub fn enc_new_from_bytes(
+        inputreader: &mut dyn std::io::Read,
+        mut cipher: &mut AesCfb8,
+    ) -> Result<VarInt, String> {
         use std::convert::TryInto;
         //let mut inputreader = std::io::Cursor::new(inputvec.clone());
         let mut input = vec![0; 1];
@@ -376,7 +389,7 @@ impl VarInt {
         let mut input = vec![0; 1];
         let g = inputreader.read_exact(&mut input);
         if g.is_err() {
-            return Err("Failed to read".to_string())
+            return Err("Failed to read".to_string());
         }
         let mut fullbyte: Vec<String> = vec![];
         let mut current = 0;

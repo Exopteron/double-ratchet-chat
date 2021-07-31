@@ -141,10 +141,10 @@ impl StateHE {
     /// Generate the initial header key and message key for Bob to be able to send messages first
     fn KDF_INIT_SECRET(rk: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
         let mut mac = HmacSha256::new_from_slice(&rk).unwrap();
-        mac.update(&[0x00,0x05,0x10]);
+        mac.update(&[0x00, 0x05, 0x10]);
         let ck = mac.finalize().into_bytes().to_vec();
         let mut mac = HmacSha256::new_from_slice(&rk).unwrap();
-        mac.update(&[0x00,0x10,0x10]);
+        mac.update(&[0x00, 0x10, 0x10]);
         let hk = mac.finalize().into_bytes().to_vec();
         return (ck, hk);
     }
@@ -176,22 +176,29 @@ impl StateHE {
         return (enc_header, ciphertext);
     }
     /// Perform double-ratchet decryption on an encrypted message and associated data.
-    pub fn RatchetDecryptHE(&mut self, enc_header: Vec<u8>, AD: Vec<u8>) -> Result<Vec<u8>, String> {
+    pub fn RatchetDecryptHE(
+        &mut self,
+        enc_header: Vec<u8>,
+        AD: Vec<u8>,
+    ) -> Result<Vec<u8>, String> {
         let (enc_header, ciphertext) = Self::DeserializeHEADERHE(enc_header);
         let plaintext =
             Self::TrySkippedMessageKeysHE(self, enc_header.clone(), ciphertext.clone(), AD.clone());
         if !plaintext.is_none() {
             return Ok(plaintext.unwrap());
         }
+
         let (header, dh_ratchet) = self.DecryptHeader(enc_header.clone());
         if dh_ratchet {
             Self::SkipMessageKeysHE(self, header.pn);
             self.DHRatchetHE(header.clone());
         }
+
         Self::SkipMessageKeysHE(self, header.n);
         let (CKr, mk) = Self::KDF_CK(self.CKr.as_ref().unwrap().clone());
         self.CKr = Some(CKr);
         self.Nr += 1;
+
         let mut ad = vec![];
         ad.append(&mut AD.clone());
         ad.append(&mut enc_header.clone());
@@ -212,7 +219,7 @@ impl StateHE {
             let header = Self::DeserializeHEADER(header);
             return (header, true);
         }
-        panic!("AHHHHHH");
+        panic!("Header decryption failed!");
     }
     /// Perform a Diffie-Hellman ratchet step.
     fn DHRatchetHE(&mut self, header: Header) {

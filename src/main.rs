@@ -246,7 +246,7 @@ fn main() {
             let mut line = vec![];
             loop {
                 if !line2.is_err() {
-                    break;
+                break;
                 } else {
                     println!("Invalid base64. Try again:");
                     let mut line = String::new();
