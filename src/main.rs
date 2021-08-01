@@ -6,6 +6,8 @@ use sha3::{Digest, Sha3_256, Sha3_512};
 use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use std::io::Read;
 use std::env::args;
+use hmac::{Hmac, Mac, NewMac};
+type HmacSha256 = Hmac<Sha3_256>;
 fn main() {
     let mut args: Vec<String> = args().collect();
     if args.len() > 1 {
@@ -57,6 +59,33 @@ fn main() {
     let mut line = line.trim().to_string();
     if line == "y" {
         println!("You are Alice.");
+        println!("Type in a password. This will be used for authenticating keys!");
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line);
+        let mut line = line.trim().to_string();
+        use argon2::{
+            password_hash::{PasswordHasher, Salt, SaltString},
+            Argon2,
+        };
+        use std::convert::TryFrom;
+        let params = argon2::Params {
+            m_cost: 37000,
+            t_cost: 2,
+            p_cost: 1,
+            output_size: 32,
+            version: argon2::Version::default(),
+        };
+        let argon2 = Argon2::default();
+        let salt = SaltString::new(&base64::encode(base64::encode("GoodSalt").as_bytes().to_vec())).unwrap();
+        let hash = argon2
+        .hash_password(
+            &line.as_bytes(),
+            None,
+            params,
+            Salt::try_from(salt.as_ref()).unwrap(),
+        )
+        .unwrap();
+        let passwordsigningkey = hash.hash.unwrap().as_bytes().to_vec();
         //println!("Listening!");
         println!("Send your recipient's message!");
         let mut line = String::new();
@@ -82,11 +111,24 @@ fn main() {
             let mut packet = std::io::Cursor::new(packet);
             let mut rkkey = varint::VarInt::read_varint_prefixed_bytearray(&mut packet);
             let mut ratchetkey = varint::VarInt::read_varint_prefixed_bytearray(&mut packet);    
+            let mut hmac = varint::VarInt::read_varint_prefixed_bytearray(&mut packet);
+            let mut mac = HmacSha256::new_from_slice(&passwordsigningkey).unwrap();
+            mac.update(&rkkey.clone());
+            mac.update(&ratchetkey.clone());
+            let mac = mac.verify(&hmac);
+            if !mac.is_ok() {
+                eprintln!("Recieved keys are not correctly verified!");
+                std::process::exit(1);
+            }
             let mut key1 = EphemeralSecret::new(OsRng);
             let mut key1public = PublicKey::from(&key1);
             let mut packet = vec![];
             //println!("RKKey: {:?}", key1public);
             packet.append(&mut varint::VarInt::write_varint_prefixed_bytearray(key1public.as_bytes().to_vec().clone()));
+            let mut mac = HmacSha256::new_from_slice(&passwordsigningkey).unwrap();
+            mac.update(&key1public.as_bytes().to_vec().clone());
+            let mut mac = mac.finalize().into_bytes().to_vec();
+            packet.append(&mut varint::VarInt::write_varint_prefixed_bytearray(mac));
             let mut packet = varint::VarInt::galax_write_packet(packet, 0x02);
             let mut packet = base64::encode(packet);
             println!("\nSend this to the recipient:\n\n\n{}\n\n", packet);
@@ -168,6 +210,33 @@ fn main() {
         }
     } else {
         println!("You are Bob.");
+        println!("Type in a password. This will be used for authenticating keys!");
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line);
+        let mut line = line.trim().to_string();
+        use argon2::{
+            password_hash::{PasswordHasher, Salt, SaltString},
+            Argon2,
+        };
+        use std::convert::TryFrom;
+        let params = argon2::Params {
+            m_cost: 37000,
+            t_cost: 2,
+            p_cost: 1,
+            output_size: 32,
+            version: argon2::Version::default(),
+        };
+        let argon2 = Argon2::default();
+        let salt = SaltString::new(&base64::encode(base64::encode("GoodSalt").as_bytes().to_vec())).unwrap();
+        let hash = argon2
+        .hash_password(
+            &line.as_bytes(),
+            None,
+            params,
+            Salt::try_from(salt.as_ref()).unwrap(),
+        )
+        .unwrap();
+        let passwordsigningkey = hash.hash.unwrap().as_bytes().to_vec();
         let mut key1 = EphemeralSecret::new(OsRng);
         let mut key1public = PublicKey::from(&key1);
         let mut key2 = StaticSecret::new(OsRng);
@@ -175,6 +244,11 @@ fn main() {
         let mut packet = vec![];
         packet.append(&mut varint::VarInt::write_varint_prefixed_bytearray(key1public.as_bytes().to_vec()));
         packet.append(&mut varint::VarInt::write_varint_prefixed_bytearray(key2public.as_bytes().to_vec()));
+        let mut mac = HmacSha256::new_from_slice(&passwordsigningkey).unwrap();
+        mac.update(&key1public.as_bytes().to_vec());
+        mac.update(&key2public.as_bytes().to_vec());
+        let mut mac = mac.finalize().into_bytes();
+        packet.append(&mut varint::VarInt::write_varint_prefixed_bytearray(mac.to_vec()));
         let mut packet = varint::VarInt::galax_write_packet(packet, 0x01);
         let mut packet = base64::encode(&packet);
         println!("Send this to the recipient:\n\n\n{}\n\n", packet);
@@ -202,6 +276,14 @@ fn main() {
             //println!("Packet: {:?}", packet);
             let mut packet = std::io::Cursor::new(packet);
             let mut rkkey = varint::VarInt::read_varint_prefixed_bytearray(&mut packet);
+            let mut hmac = varint::VarInt::read_varint_prefixed_bytearray(&mut packet);
+            let mut mac = HmacSha256::new_from_slice(&passwordsigningkey).unwrap();
+            mac.update(&rkkey);
+            let mac = mac.verify(&hmac);
+            if !mac.is_ok() {
+                eprintln!("Recieved keys are not correctly verified!");
+                std::process::exit(1);
+            }
             //println!("RKKey: {:?}", rkkey);
             let mut newrkkey = [0; 32];
             for i in 0..32 {
