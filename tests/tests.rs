@@ -188,5 +188,43 @@ use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
         let m = alice.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
         let m = alice.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
     }
+    #[test]
+    fn alice_message_first_conversation() {
+        let mut key1 = StaticSecret::new(OsRng);
+        let mut key1public = PublicKey::from(&key1);
+        let mut alice = doubleratchet::StateHE::RatchetInitAliceHE(vec![0; 32], key1public, vec![0; 32], vec![0; 32]);
+        let mut bob = doubleratchet::StateHE::RatchetInitBobHE(vec![0; 32], key1, vec![0; 32], vec![0; 32]);
+        for _ in 0..100 {
+            let message = alice.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
+            let message = bob.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+            if message != b"Hello World".to_vec() {
+                panic!("Fail");
+            }
+            let message = bob.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
+            let message = alice.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+            if message != b"Hello World".to_vec() {
+                panic!("Fail");
+            }
+        }
+    }
+    #[test]
+    fn bob_message_first_conversation() {
+        let mut key1 = StaticSecret::new(OsRng);
+        let mut key1public = PublicKey::from(&key1);
+        let mut alice = doubleratchet::StateHE::RatchetInitAliceHE(vec![0; 32], key1public, vec![0; 32], vec![0; 32]);
+        let mut bob = doubleratchet::StateHE::RatchetInitBobHE(vec![0; 32], key1, vec![0; 32], vec![0; 32]);
+        for _ in 0..100 {
+            let message = bob.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
+            let message = alice.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+            if message != b"Hello World".to_vec() {
+                panic!("Fail");
+            }
+            let message = alice.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
+            let message = bob.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+            if message != b"Hello World".to_vec() {
+                panic!("Fail");
+            }
+        }
+    }
 }
 
