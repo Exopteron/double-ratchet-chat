@@ -166,5 +166,27 @@ use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
         let message = bob.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
         let message = bob.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
     }
+    #[test]
+    #[should_panic]
+    fn replay_attack_on_bob() {
+        let mut key1 = StaticSecret::new(OsRng);
+        let mut key1public = PublicKey::from(&key1);
+        let mut alice = doubleratchet::StateHE::RatchetInitAliceHE(vec![0; 32], key1public, vec![0; 32], vec![0; 32]);
+        let mut bob = doubleratchet::StateHE::RatchetInitBobHE(vec![0; 32], key1, vec![0; 32], vec![0; 32]);
+        let mut message = alice.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
+        let m = bob.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+        let m = bob.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+    }
+    #[test]
+    #[should_panic]
+    fn replay_attack_on_alice() {
+        let mut key1 = StaticSecret::new(OsRng);
+        let mut key1public = PublicKey::from(&key1);
+        let mut alice = doubleratchet::StateHE::RatchetInitAliceHE(vec![0; 32], key1public, vec![0; 32], vec![0; 32]);
+        let mut bob = doubleratchet::StateHE::RatchetInitBobHE(vec![0; 32], key1, vec![0; 32], vec![0; 32]);
+        let mut message = bob.RatchetEncryptHE(b"Hello World".to_vec(), vec![]);
+        let m = alice.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+        let m = alice.RatchetDecryptHE(message.to_vec(), vec![]).unwrap();
+    }
 }
 
