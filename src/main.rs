@@ -23,10 +23,9 @@ fn main() {
                 let mut line = String::new();
                 std::io::stdin().read_line(&mut line);
                 let mut line = line.trim().to_string();
-                let (mut header, ciphertext) = ratchet.RatchetEncryptHE(line.as_bytes().to_vec(), vec![]);
+                let header = ratchet.RatchetEncryptHE(line.as_bytes().to_vec(), vec![]);
                 let mut json = serde_json::to_string_pretty(&ratchet).unwrap();
                 std::fs::write(&args[1], json);
-                header.append(&mut ciphertext.clone());
                 let mut ciphertext = base64::encode(&header);
                 println!("-------BEGIN ENCRYPTED-------\n\n{}\n\n-------END ENCRYPTED-------\n", ciphertext);
             } else {
@@ -176,10 +175,9 @@ fn main() {
                     let mut line = String::new();
                     std::io::stdin().read_line(&mut line);
                     let mut line = line.trim().to_string();
-                    let (mut header, ciphertext) = ratchet.RatchetEncryptHE(line.as_bytes().to_vec(), vec![]);
+                    let header = ratchet.RatchetEncryptHE(line.as_bytes().to_vec(), vec![]);
                     let mut json = serde_json::to_string_pretty(&ratchet).unwrap();
                     std::fs::write("alicepub.key", json);
-                    header.append(&mut ciphertext.clone());
                     let mut ciphertext = base64::encode(&header);
                     println!("-------BEGIN ENCRYPTED-------\n\n{}\n\n-------END ENCRYPTED-------\n", ciphertext);
                 } else {
@@ -358,10 +356,9 @@ fn main() {
                     let mut line = String::new();
                     std::io::stdin().read_line(&mut line);
                     let mut line = line.trim().to_string();
-                    let (mut header, ciphertext) = ratchet.RatchetEncryptHE(line.as_bytes().to_vec(), vec![]);
+                    let header = ratchet.RatchetEncryptHE(line.as_bytes().to_vec(), vec![]);
                     let mut json = serde_json::to_string_pretty(&ratchet).unwrap();
                     std::fs::write("bobpub.key", json);
-                    header.append(&mut ciphertext.clone());
                     let mut ciphertext = base64::encode(&header);
                     println!("-------BEGIN ENCRYPTED-------\n\n{}\n\n-------END ENCRYPTED-------\n", ciphertext);
                 } else {

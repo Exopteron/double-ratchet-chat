@@ -160,7 +160,7 @@ impl StateHE {
         return (nck, mk);
     }
     /// Perform double-ratchet message encryption on plaintext and associated data.
-    pub fn RatchetEncryptHE(&mut self, plaintext: Vec<u8>, AD: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+    pub fn RatchetEncryptHE(&mut self, plaintext: Vec<u8>, AD: Vec<u8>) -> Vec<u8> {
         let (CKs, mk) = Self::KDF_CK(self.CKs.clone());
         self.CKs = CKs;
         let DHsPub = PublicKey::from(&self.DHRs.clone());
@@ -173,7 +173,10 @@ impl StateHE {
         ad.append(&mut enc_header.clone());
         let enc_header = varint::VarInt::write_varint_prefixed_bytearray(enc_header);
         let ciphertext = Self::ENCRYPT(mk, plaintext, ad);
-        return (enc_header, ciphertext);
+        let mut vec = vec![];
+        vec.append(&mut enc_header.clone());
+        vec.append(&mut ciphertext.clone());
+        return vec;
     }
     /// Perform double-ratchet decryption on an encrypted message and associated data.
     pub fn RatchetDecryptHE(
