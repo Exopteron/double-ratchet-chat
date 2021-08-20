@@ -30,3 +30,4 @@ num = "0.4.0"
 block-modes = "0.8.1"
 chacha20poly1305 = "0.8.1"
 argon2 = { version = "0.2", features = ["password-hash"] }
+double-ratchet-lib = { git = "https://github.com/Exopteron/double-ratchet-lib", branch = "main" }

@@ -1,4 +1,4 @@
-mod doubleratchet;
+use double_ratchet_lib as doubleratchet;
 mod varint;
 use keyex_rand_core::OsRng;
 use serde::{Deserialize, Serialize};
